@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+
+<!--HEADER-->
+{% block head %}
+
+{% endblock %}
+
+<!--BODY-->
+{% block body %}
+    <br />
+    <h2>Client Update</h2>
+    <br/>
+    <form name="updateclient" action="/update/{{ip.0}}" method="POST">
+        <div class="form-floating mb-3">
+            <input type="username" class="form-control" name="username" id="floatingInput" placeholder="Username" value="{{ip.1}}" required>
+            <label for="floatingInput">Username</label>
+            <br />
+            <select class="form-select" aria-label="Default select example" value="{{ip.2}}" name="access">
+                <option value="APPROVED" {% if ip.2 == 'APPROVED' %}selected{% endif %}>APPROVED</option>
+                <option value="DENIED" {% if ip.2 == 'DENIED' %}selected{% endif %}>DENIED</option>
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary">Update</button>
+    </form>
+    <br/>
+{% endblock %}

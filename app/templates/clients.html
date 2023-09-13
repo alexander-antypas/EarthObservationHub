@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+
+<!--HEADER-->
+{% block head %}
+{% endblock %}
+
+<!--BODY-->
+{% block body %}
+<br/>
+<h2>CLIENTS</h2>
+<br/>
+<div class="dropdown">
+    <button class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+      Filter Access
+    </button>
+    <ul class="dropdown-menu">
+        <li><a class="dropdown-item" href="/SearchByAccess/{{'ALL'}}">ALL</a></li>
+        <li><a class="dropdown-item" href="/SearchByAccess/{{'APPROVED'}}">APPROVED</a></li>
+        <li><a class="dropdown-item" href="/SearchByAccess/{{'DENIED'}}">DENIED</a></li>
+    </ul>
+</div>
+<br/>
+<div data-bs-spy="scroll" style="max-height: 70vh; overflow: auto;">
+    <table id="client" class="table table-dark table-striped table-hover table-striped">
+        <thead>
+          <tr>
+            <th scope="col">#</th>
+            <th scope="col">Username</th>
+            <th scope="col">Access</th>
+            <th scope="col">Date Added</th>
+            <th scope="col" style="text-align: center;">Delete</th>
+            <th scope="col" style="text-align: center;">Update</th>
+          </tr>
+        </thead>
+        <tbody class="table-group-divider">
+        </tr>
+            {% if clients|length < 1 %}
+                <h2> There are no Clients</h2>
+            {% else %}
+                {% for client in clients %}
+                <tr>
+                    <th scope="row">{{ loop.index }}</th>
+                    <td>{{ client.1 }}</td>
+                    <td>{{ client.2 }}</td>
+                    <td>{{ client.3.date() }}</td>
+                    <td style="text-align: center;"><a id='cancel' href="/delete/{{client.0}}"><i class="fa fa-ban"></i></a></td>
+                    <td style="text-align: center;"><a id='update' href="/update/{{client.0}}"><i class="fa fa-wrench"></i></a></td>
+                </tr>
+                {% endfor %}
+            {% endif %}
+        </tr>
+        </tbody>
+      </table>
+      <br/>
+</div>
+{% endblock %}

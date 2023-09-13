@@ -1,0 +1,7 @@
+Flask
+flask_sqlalchemy
+requests
+six
+Flask-RESTful
+psycopg2-binary
+PyMySQL

@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+<!--HEADER-->
+{% block head %}
+{% endblock %}
+
+<!--BODY-->
+{% block body %}
+<br/>
+<h2>LOGS</h2>
+<br/>
+<div data-bs-spy="scroll" style="max-height: 70vh; overflow: auto;">
+    <table id="logs" class="table table-dark table-striped table-hover">
+        <thead>
+          <tr>
+            <th scope="col">#</th>
+            <th scope="col">Username</th>
+            <th scope="col">Date</th>
+            <th scope="col">Action</th>
+            <th scope="col">Description</th>
+          </tr>
+        </thead>
+        <tbody class="table-group-divider">
+            <tr>
+                {% if logs|length < 1 %}
+                    <h2> NO LOGS </h2>
+                {% else %}
+                    {% for row in logs %}
+                        <tr>
+                            <th scope="row">{{ loop.index }}</th>
+                            <td>{{ row.1 }}</td>
+                            <td>{{ row.2.date() }}</td>
+                            <td>{{ row.3 }}</td>
+                            <td>{{ row.4 }}</td>
+                        </tr>
+                    {% endfor %}
+                {% endif %}
+            </tr>
+        </tbody>
+    </table>
+    <br/>
+</div>
+{% endblock %}
