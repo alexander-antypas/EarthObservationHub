@@ -1,13 +1,13 @@
-version: '1.0'
+version: '3.8'
 
 
 services:
-  eth:
-    container_name: "EarthTriangleHub"
-    image: eth:latest
+  flask:
+    container_name: "eoh_flask"
+    image: flask:latest
     environment:
-      ETH_NAME: "EarthTriangleHub"
-      ETH_IP: "localhost"
+      EOH_NAME: "EarthObservationHub"
+      EOH_IP: "localhost"
     restart: unless-stopped
     build:
       # build the image from Dockerfile
@@ -22,7 +22,7 @@ services:
       - postgres
 
   postgres:
-    container_name: eth_db
+    container_name: eoh_db
     image: postgres:latest
     ports:
       - "5432:5432"
@@ -35,7 +35,7 @@ services:
       retries: 20
 
   adminer:
-    container_name: eth_adminer
+    container_name: eoh_adminer
     image: adminer:latest
     ports:
       - "8080:8080"

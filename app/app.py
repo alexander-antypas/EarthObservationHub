@@ -4,8 +4,8 @@ import requests
 import os
 from postgres_com import *
 #variables
-app_name=os.environ['ETH_NAME']
-app_ip=os.environ['ETH_IP']
+app_name=os.environ['EOH_NAME']
+app_ip=os.environ['EOH_IP']
 
 #######################
 ##FLASK CONFIGURATION##
@@ -163,5 +163,5 @@ def update(id):
 
 #MAIN
 if __name__ == '__main__':
-    print("EarthTriangleHub running!!")
+    print("EarthObservationHub running!!")
     app.run(debug=True, host='0.0.0.0')
