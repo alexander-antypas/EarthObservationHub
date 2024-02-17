@@ -3,6 +3,7 @@ from config import config
 
 sql_add_client = """INSERT INTO CLIENT(username,email,password) VALUES(%s,%s,%s) RETURNING id;"""
 sql_add_log="""INSERT INTO LOG(username,action,details) VALUES(%s,%s,%s) RETURNING id;"""
+sql_add_filters = """INSERT INTO FILTER(filters) VALUES(%s) RETURNING id;"""
 
 #check connection between flask and db
 def connect():
@@ -61,6 +62,16 @@ def add_log(username,action,details):
     conn = get_db_connection()
     cur = conn.cursor()
     id = cur.execute(sql_add_log,(username,action,details))
+    conn.commit()
+    cur.close()
+    conn.close()
+    return id
+
+#add filter
+def add_filters(data):
+    conn = get_db_connection()
+    cur = conn.cursor()
+    id = cur.execute(sql_add_filters,(data,))
     conn.commit()
     cur.close()
     conn.close()

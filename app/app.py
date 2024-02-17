@@ -1,4 +1,5 @@
-from flask import Flask, render_template, request, redirect
+from flask import Flask, render_template, request, redirect, jsonify
+import json
 from datetime import datetime
 import requests
 import os
@@ -28,6 +29,13 @@ email varchar(256),\
 password varchar(256));"
 cur.execute(sqlCreateTableIP)
 
+#TABLE FILTER
+sqlCreateTableIP = "create table if not exists FILTER (\
+id serial primary key,\
+date_created timestamp default now(),\
+filters text);"
+cur.execute(sqlCreateTableIP)
+
 #TABLE LOG
 sqlCreateTableHISTORY = "create table if not exists LOG (\
 id serial primary key,\
@@ -43,26 +51,6 @@ connect_db.close()
 ############################################
 ##############REACT#########################
 ############################################
-
-#LOGIN TO REACT
-@app.route("/unregistered_traffic", methods=["POST", "GET"])
-def login():
-    header = {"Content-Type": "application/x-www-form-urlencoded"}
-    body = {
-        "username": "admin@my-email.com",
-        "password": "pass"
-    }
-    try:
-        res = requests.post("url", headers=header, data=body)
-    except:
-        return "f"
-    response = res.json()
-    if res.status_code == 200:
-        #print(response)
-        token = response["access_token"]
-        return token
-    else:
-        print(res.status_code)
 
 ############################################
 ##############ROUTES########################
@@ -114,6 +102,55 @@ def addclient():
     else:
         return render_template('add_client.html')
 
+#POST FILTER
+@app.route('/addfilter', methods=['POST','GET'])
+def addfilter():
+    if request.method == 'POST':
+        try:
+            request_data = request.data.decode('utf-8')  # Decode the raw request data
+            print('Received JSON data:', request_data)
+            
+            # Parse the JSON data into a Python dictionary
+            data = json.loads(request_data)
+            # Serialize the data into a JSON string
+            data_str = json.dumps(data)
+            choiceAir = data.get('selectedChoiceAir')
+            choiceClimate = data.get('selectedChoiceClimate')
+            choiceCrime = data.get('selectedChoiceCrime')
+            choiceEntertain = data.get('selectedChoiceEn')
+            choiceFlood = data.get('selectedChoiceFlood')
+            choiceMigrant = data.get('selectedChoiceMig')
+            choicePopulation = data.get('selectedChoicePop')
+            choiceRoad = data.get('selectedChoiceRoad')
+            choiceUnemploy = data.get('selectedChoiceUn')
+            rangeAirport = data.get('selectedRangeAirport')
+            rangeBeach = data.get('selectedRangeBeach')
+            rangeCoastMax = data.get('selectedRangeCoastMax')
+            rangeCoastMin = data.get('selectedRangeCoastMin')
+            rangeElevationMax = data.get('selectedRangeElevationMax')
+            rangeElevationMin = data.get('selectedRangeElevationMin')
+            rangeHospital = data.get('selectedRangeHospital')
+            rangePort = data.get('selectedRangePort')
+            rangeSchool = data.get('selectedRangeSchool')
+            rangeSlopeMin = data.get('selectedRangeSlopeMin')
+            rangeSlopeMax = data.get('selectedRangeTrain')
+            rangeTrain = data.get('selectedRangeTrain')
+            rangeTransport = data.get('selectedRangeTransport')
+            add_filters(data_str)
+            action = "INSERT"
+            details = "At {}  filters added in system".format(datetime.now().strftime("%m/%d/%Y, %H:%M:%S"))
+            add_log("unknown",action,details)
+            # Return a JSON response with a success message
+            response_data = {'message': 'Data received and processed successfully'}
+            return jsonify(response_data), 200
+        except Exception as e:
+            # Return a JSON response with an error message
+            response_data = {'error': 'Internal Server Error', 'details': str(e)}
+            return jsonify(response_data), 500
+    else:
+        return 'Method not allowed', 405
+
+        
 #DELETE CLIENT
 @app.route('/delete/<int:id>')
 def delete(id):
