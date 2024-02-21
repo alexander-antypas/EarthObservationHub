@@ -1,1 +1,7 @@
-{}
+{
+  "dependencies": {
+    "flask-cors": "^0.0.1",
+    "pyproj": "^1.0.1",
+    "shapely": "^0.2.3"
+  }
+}

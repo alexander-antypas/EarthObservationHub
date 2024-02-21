@@ -4,6 +4,7 @@ from datetime import datetime
 import requests
 import os
 from postgres_com import *
+from flask_cors import CORS
 #variables
 app_name=os.environ['EOH_NAME']
 app_ip=os.environ['EOH_IP']
@@ -12,6 +13,7 @@ app_ip=os.environ['EOH_IP']
 ##FLASK CONFIGURATION##
 #######################
 app = Flask(__name__, template_folder='templates')
+CORS(app)
 ###############################
 ##########POSTGRES_DB##########
 ###############################
@@ -108,41 +110,28 @@ def addfilter():
     if request.method == 'POST':
         try:
             request_data = request.data.decode('utf-8')  # Decode the raw request data
-            print('Received JSON data:', request_data)
+            #print('Received JSON data:', request_data)
             
             # Parse the JSON data into a Python dictionary
             data = json.loads(request_data)
             # Serialize the data into a JSON string
             data_str = json.dumps(data)
-            choiceAir = data.get('selectedChoiceAir')
-            choiceClimate = data.get('selectedChoiceClimate')
-            choiceCrime = data.get('selectedChoiceCrime')
-            choiceEntertain = data.get('selectedChoiceEn')
-            choiceFlood = data.get('selectedChoiceFlood')
-            choiceMigrant = data.get('selectedChoiceMig')
-            choicePopulation = data.get('selectedChoicePop')
-            choiceRoad = data.get('selectedChoiceRoad')
-            choiceUnemploy = data.get('selectedChoiceUn')
+            selectedRegion = data.get('selectedRegion')
             rangeAirport = data.get('selectedRangeAirport')
-            rangeBeach = data.get('selectedRangeBeach')
             rangeCoastMax = data.get('selectedRangeCoastMax')
             rangeCoastMin = data.get('selectedRangeCoastMin')
-            rangeElevationMax = data.get('selectedRangeElevationMax')
-            rangeElevationMin = data.get('selectedRangeElevationMin')
             rangeHospital = data.get('selectedRangeHospital')
             rangePort = data.get('selectedRangePort')
-            rangeSchool = data.get('selectedRangeSchool')
-            rangeSlopeMin = data.get('selectedRangeSlopeMin')
-            rangeSlopeMax = data.get('selectedRangeTrain')
-            rangeTrain = data.get('selectedRangeTrain')
-            rangeTransport = data.get('selectedRangeTransport')
+            rangeRiver = data.get('selectedRangeRiver')
+            rangeElevationMax = data.get('selectedRangeElevationMax')
+            rangeElevationMin = data.get('selectedRangeElevationMin')
             add_filters(data_str)
             action = "INSERT"
             details = "At {}  filters added in system".format(datetime.now().strftime("%m/%d/%Y, %H:%M:%S"))
-            add_log("unknown",action,details)
+            add_log("alekos",action,details)
             # Return a JSON response with a success message
-            response_data = {'message': 'Data received and processed successfully'}
-            return jsonify(response_data), 200
+            response_data = searchTowns(selectedRegion,rangeAirport,rangeCoastMax, rangeCoastMin,rangeHospital,rangePort, rangeRiver, rangeElevationMin, rangeElevationMax)
+            return jsonify(response_data)
         except Exception as e:
             # Return a JSON response with an error message
             response_data = {'error': 'Internal Server Error', 'details': str(e)}

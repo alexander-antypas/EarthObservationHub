@@ -5,3 +5,6 @@ six
 Flask-RESTful
 psycopg2-binary
 PyMySQL
+flask_cors
+shapely
+pyproj
