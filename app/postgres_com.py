@@ -11,17 +11,44 @@ sql_add_filters = """INSERT INTO FILTER(filters) VALUES(%s) RETURNING id;"""
 #sql_townByCoast = ""
 #sql_TownEnd = ";"
 sql_start = """WITH region_name AS (
-    SELECT '{}'::TEXT AS name
-),
+    SELECT '{}'::TEXT AS name),
 region_towns AS (
     SELECT towns.name,towns.geom, towns.elevation, towns.nomos
     FROM towns 
     INNER JOIN regions ON ST_Contains(regions.geom, towns.geom) 
 	CROSS JOIN region_name
-    WHERE regions.name = region_name.name
-)"""
-sql_medium=""" SELECT distinct region_towns.name, region_towns.geom, region_towns.elevation, region_towns.nomos
-FROM region_towns {}"""
+    WHERE regions.name = region_name.name),
+region_aktogrammh as(
+    SELECT aktogrammh.geom 
+    FROM aktogrammh 
+    INNER JOIN regions ON ST_Contains(regions.geom, aktogrammh.geom) 
+	CROSS JOIN region_name
+    WHERE regions.name = region_name.name),
+region_ferryterminals as(
+    SELECT ferryterminals.geom 
+    FROM ferryterminals 
+    INNER JOIN regions ON ST_Contains(regions.geom, ferryterminals.geom) 
+	CROSS JOIN region_name
+    WHERE regions.name = region_name.name),
+region_hospitals AS (
+    SELECT hospitals.geom 
+    FROM hospitals 
+    INNER JOIN regions ON ST_Contains(regions.geom, hospitals.geom) 
+	CROSS JOIN region_name
+    WHERE regions.name = region_name.name),
+region_rivers AS(
+	SELECT rivers.shape_leng,rivers.geom
+    FROM rivers 
+    INNER JOIN regions ON ST_Contains(regions.geom, rivers.geom) 
+    CROSS JOIN region_name
+    WHERE regions.name = region_name.name)
+SELECT distinct region_towns.name, region_towns.geom, region_towns.elevation, region_towns.nomos,
+    (SELECT MIN(ST_Distance(region_rivers.geom, region_towns.geom)) FROM region_rivers) AS min_distance_to_river,
+    (SELECT MIN(ST_Distance(region_hospitals.geom, region_towns.geom)) FROM region_hospitals) AS min_distance_to_hospital,
+    (SELECT MIN(ST_Distance(airports.geom, region_towns.geom)) FROM airports) AS min_distance_to_airport,
+    (SELECT MIN(ST_Distance(region_ferryterminals.geom, region_towns.geom)) FROM region_ferryterminals) AS min_distance_to_port,
+    (SELECT MIN(ST_Distance(region_aktogrammh.geom, region_towns.geom)) FROM region_aktogrammh) AS min_distance_to_coast
+FROM region_towns, region_aktogrammh, region_hospitals, region_rivers, region_ferryterminals, airports """
 sql_river = "ST_DISTANCE(region_rivers.geom, region_towns.geom) < {}*1000"
 sql_hospital = "ST_DISTANCE(region_hospitals.geom, region_towns.geom) < {}*1000"
 sql_airport = "ST_DISTANCE(airports.geom, region_towns.geom) < {}*1000 "
@@ -29,34 +56,6 @@ sql_port = "ST_DISTANCE(region_ferryterminals.geom, region_towns.geom) < {}*1000
 sql_coast = """ST_DISTANCE(region_aktogrammh.geom, region_towns.geom) < {}*1000 AND ST_DISTANCE(region_aktogrammh.geom, region_towns.geom) > {}*1000"""
 sql_elevation = "region_towns.elevation <= {} AND region_towns.elevation >= {}"
 sql_end = " FETCH FIRST 100 ROWS ONLY; """
-sql_river2=""",
-region_rivers AS(
-	SELECT rivers.shape_leng,rivers.geom
-    FROM rivers 
-    INNER JOIN regions ON ST_Contains(regions.geom, rivers.geom) 
-    CROSS JOIN region_name
-    WHERE regions.name = region_name.name)"""
-sql_hospital2=""",
-region_hospitals AS (
-    SELECT hospitals.geom 
-    FROM hospitals 
-    INNER JOIN regions ON ST_Contains(regions.geom, hospitals.geom) 
-	CROSS JOIN region_name
-    WHERE regions.name = region_name.name)"""
-sql_port2=""",
-region_ferryterminals as(
-    SELECT ferryterminals.geom 
-    FROM ferryterminals 
-    INNER JOIN regions ON ST_Contains(regions.geom, ferryterminals.geom) 
-	CROSS JOIN region_name
-    WHERE regions.name = region_name.name)"""
-sql_coast2=""",
-region_aktogrammh as(
-    SELECT aktogrammh.geom 
-    FROM aktogrammh 
-    INNER JOIN regions ON ST_Contains(regions.geom, aktogrammh.geom) 
-	CROSS JOIN region_name
-    WHERE regions.name = region_name.name)"""
 #check connection between flask and db
 def connect():
     """ Connect to the PostgreSQL database server """
@@ -100,22 +99,7 @@ def get_db_connection():
 ####TOWNS
 def searchTowns(selectedRegion,rangeAirport,rangeCoastMax, rangeCoastMin,rangeHospital,rangePort, rangeRiver, rangeElevationMin, rangeElevationMax):
     thisSQL = sql_start.format(selectedRegion)
-    sql_from = ""
-    if(rangeCoastMin != 0 and rangeCoastMax != 0 ):
-        thisSQL = thisSQL+sql_coast2
-        sql_from = sql_from+", region_aktogrammh"
-    if(rangeHospital != 0):
-        thisSQL = thisSQL+sql_hospital2
-        sql_from = sql_from+", region_hospitals" 
-    if(rangeRiver != 0):
-        thisSQL = thisSQL+sql_river2
-        sql_from = sql_from+", region_rivers" 
-    if(rangePort != 0):
-        thisSQL = thisSQL+sql_port2
-        sql_from = sql_from+", region_ferryterminals" 
-    if(rangeAirport != 0):
-        sql_from = sql_from+", airports" 
-    thisSQL = thisSQL+sql_medium.format(sql_from)
+    thisSQL = thisSQL
     hasfilters = bool(False)
     if(rangeElevationMin != 0 and rangeElevationMax != 0 ):
         if(hasfilters):
@@ -129,7 +113,7 @@ def searchTowns(selectedRegion,rangeAirport,rangeCoastMax, rangeCoastMin,rangeHo
         else:
             thisSQL = thisSQL+" where "+ sql_airport.format(rangeAirport)
             hasfilters = bool(True)
-    if(rangeCoastMin != 0 and rangeCoastMax != 0 ):
+    if(rangeCoastMax != 0 ):
         if(hasfilters):
            thisSQL = thisSQL+" and "+sql_coast.format(rangeCoastMax, rangeCoastMin)
         else:
@@ -160,16 +144,14 @@ def searchTowns(selectedRegion,rangeAirport,rangeCoastMax, rangeCoastMin,rangeHo
         conn = get_db_connection()
         cur = conn.cursor()
         cur.execute(thisSQL)
-        print('testttttttt2')
+        #print('testttttttt2')
         towns = cur.fetchall()
-        print('testttttttt3')
         cur.close()
         conn.close()
-        print(towns)
+        #print(towns)
         if(len(towns)>0):
             townPoints = hexToLatLong(towns)
-            #townPoints = projected_to_degrees(townPoints)
-            print(townPoints)
+            #print(townPoints)
             response = townPoints
         else:
             response = {'message': 'Data not found'}
@@ -185,9 +167,14 @@ def hexToLatLong(hexpoints):
         name = point[0]
         elevation = point[2]
         county = point[3]
+        river = point[4]
+        hospital = point[5]
+        airport = point[6]
+        port = point[7]
+        coast = point[8]
         geom = wkb.loads(point[1], hex=True)
         longitude, latitude = transform(proj_in, proj_out, geom.x, geom.y)
-        LatLongPoints.append((f"{name},{latitude},{longitude},{elevation},{county}"))
+        LatLongPoints.append((f"{name},{latitude},{longitude},{elevation},{county},{river},{hospital},{airport},{port},{coast}"))
     return LatLongPoints
 #########TABLE LOG########
 #get all logs

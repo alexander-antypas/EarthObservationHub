@@ -104,14 +104,13 @@ def addclient():
     else:
         return render_template('add_client.html')
 
-#POST FILTER
+#POST FILTER postgis
 @app.route('/addfilter', methods=['POST','GET'])
 def addfilter():
     if request.method == 'POST':
         try:
             request_data = request.data.decode('utf-8')  # Decode the raw request data
             #print('Received JSON data:', request_data)
-            
             # Parse the JSON data into a Python dictionary
             data = json.loads(request_data)
             # Serialize the data into a JSON string
@@ -126,7 +125,7 @@ def addfilter():
             rangeElevationMax = data.get('selectedRangeElevationMax')
             rangeElevationMin = data.get('selectedRangeElevationMin')
             add_filters(data_str)
-            action = "INSERT"
+            action = "POSTGIS SEARCH"
             details = "At {}  filters added in system".format(datetime.now().strftime("%m/%d/%Y, %H:%M:%S"))
             add_log("alekos",action,details)
             # Return a JSON response with a success message
@@ -139,7 +138,47 @@ def addfilter():
     else:
         return 'Method not allowed', 405
 
-        
+#POST Weight
+@app.route('/ahp', methods=['POST','GET'])
+def ahp():
+    if request.method == 'POST':
+        try:
+            request_data = request.data.decode('utf-8')  # Decode the raw request data
+            #print('Received JSON data:', request_data)
+            # Parse the JSON data into a Python dictionary
+            data = json.loads(request_data)
+            # Serialize the data into a JSON string
+            data_str = json.dumps(data)
+            WDistance = data.get('WDistance')
+            WSpatial = data.get('WSpatial')
+            WDemographic = data.get('WDemographic')
+            WSafety = data.get('WSafety')
+            WSchool = data.get('WSchool')
+            WHospital = data.get('WHospital')
+            WTransport = data.get('WTransport')
+            WSlope = data.get('WSlope')
+            WCoast = data.get('WCoast')
+            WElevation = data.get('WElevation')
+            WPopulation = data.get('WPopulation')
+            WEconomy = data.get('WEconomy')
+            WEntertainment = data.get('WEntertainment')
+            WCrime = data.get('WCrime')
+            WTraffic = data.get('WTraffic')
+            WMigrant = data.get('WMigrant')
+            add_filters(data_str)
+            action = "AHP"
+            details = "At {}  weights added in system".format(datetime.now().strftime("%m/%d/%Y, %H:%M:%S"))
+            add_log("alekos",action,details)
+            # Return a JSON response with a success message
+            response_data = "popaolamanmou"
+            return jsonify(response_data)
+        except Exception as e:
+            # Return a JSON response with an error message
+            response_data = {'error': 'Internal Server Error', 'details': str(e)}
+            return jsonify(response_data), 500
+    else:
+        return 'Method not allowed', 405
+
 #DELETE CLIENT
 @app.route('/delete/<int:id>')
 def delete(id):
