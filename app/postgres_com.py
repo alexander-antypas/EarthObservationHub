@@ -97,7 +97,19 @@ def get_db_connection():
         password="1234")
     return conn
 ####TOWNS
-def searchTowns(selectedRegion,rangeAirport,rangeCoastMax, rangeCoastMin,rangeHospital,rangePort, rangeRiver, rangeElevationMin, rangeElevationMax):
+#get all logs
+def get_all_athens_regions():
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute('SELECT id,geom,name,custom_hos,custom_sch,custom_sta,custom_slo,custom_coa,custom_dem,custom_pop,custom_wor FROM athens;')
+    regions = cur.fetchall()
+    cur.close()
+    conn.close()
+    return regions
+
+def searchTowns(selectedRegion,rangeAirport,rangeCoastMax, 
+                rangeCoastMin,rangeHospital,rangePort, rangeRiver, 
+                rangeElevationMin, rangeElevationMax):
     thisSQL = sql_start.format(selectedRegion)
     thisSQL = thisSQL
     hasfilters = bool(False)
@@ -157,6 +169,47 @@ def searchTowns(selectedRegion,rangeAirport,rangeCoastMax, rangeCoastMin,rangeHo
             response = {'message': 'Data not found'}
     except Exception as e:
         response = {'message': 'Bad request or connection error'}
+    return response
+def do_the_math(WDistance,WSpatial,WDemographic,WSchool,WHospital,WTransport,
+                WSlope,WCoast,WElevation,WPopulation,WEconomy,regions):
+    column_names = ['id', 'geom', 'name', 'custom_hos', 'custom_sch', 'custom_sta', 'custom_slo', 'custom_coa', 'custom_dem', 'custom_pop', 'custom_wor']
+    Spatial=[]
+    for i in range(0, len(regions)):
+        Slope = regions[i][column_names.index('custom_slo')]
+        Elevation = regions[i][column_names.index('custom_dem')]
+        Coast = regions[i][column_names.index('custom_coa')]
+        value = WSlope*Slope + WElevation*Elevation + WCoast*Coast
+        Spatial.append(value)
+    Demographic=[]
+    for i in range(0, len(regions)):
+        Population = regions[i][column_names.index('custom_pop')]
+        Economy = regions[i][column_names.index('custom_wor')]
+        value = WPopulation*Population + WEconomy*Economy
+        Demographic.append(value)
+    Distance=[]
+    for i in range(0, len(regions)):
+        School = regions[i][column_names.index('custom_sch')]
+        Hospital = regions[i][column_names.index('custom_hos')]
+        Transport = regions[i][column_names.index('custom_sta')]
+        value = WSchool*School + WHospital*Hospital + WTransport*Transport
+        Distance.append(value)
+    final=[]
+    for i in range(0, len(regions)):
+        value= WSpatial*Spatial[i]+WDemographic*Demographic[i]+WDistance*Distance[i]
+        final.append(value)
+    id=[]
+    name=[]
+    geom=[]
+    for i in range(0, len(regions)):
+        value_id=regions[i][column_names.index('id')]
+        value_name=regions[i][column_names.index('name')]
+        value_geom=regions[i][column_names.index('geom')]
+        id.append(value_id)
+        name.append(value_name)
+        geom.append(value_geom)
+    response=[]
+    for i in range(0, len(regions)):
+        response.append((f"{id[i]},{geom[i]},{name[i]},{final[i]}"))
     return response
 
 def hexToLatLong(hexpoints):

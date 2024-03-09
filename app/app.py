@@ -152,7 +152,6 @@ def ahp():
             WDistance = data.get('WDistance')
             WSpatial = data.get('WSpatial')
             WDemographic = data.get('WDemographic')
-            WSafety = data.get('WSafety')
             WSchool = data.get('WSchool')
             WHospital = data.get('WHospital')
             WTransport = data.get('WTransport')
@@ -161,16 +160,15 @@ def ahp():
             WElevation = data.get('WElevation')
             WPopulation = data.get('WPopulation')
             WEconomy = data.get('WEconomy')
-            WEntertainment = data.get('WEntertainment')
-            WCrime = data.get('WCrime')
-            WTraffic = data.get('WTraffic')
-            WMigrant = data.get('WMigrant')
+            regions = get_all_athens_regions()
             add_filters(data_str)
             action = "AHP"
             details = "At {}  weights added in system".format(datetime.now().strftime("%m/%d/%Y, %H:%M:%S"))
             add_log("alekos",action,details)
             # Return a JSON response with a success message
-            response_data = "popaolamanmou"
+            response_data = do_the_math(WDistance,WSpatial,WDemographic,
+                                        WSchool,WHospital,WTransport,WSlope,WCoast,
+                                        WElevation,WPopulation,WEconomy,regions)
             return jsonify(response_data)
         except Exception as e:
             # Return a JSON response with an error message
