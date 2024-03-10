@@ -1,8 +1,13 @@
 import psycopg2
 from config import config
 from shapely import wkb
-from pyproj import Proj, transform
+from pyproj import Proj, transform, Transformer
+import time
+import numpy as np
 
+#region VARIABLES
+source_proj = Proj(init='epsg:2100')
+dest_proj = Proj(init='epsg:4326') 
 sql_add_client = """INSERT INTO CLIENT(username,email,password) VALUES(%s,%s,%s) RETURNING id;"""
 sql_add_log="""INSERT INTO LOG(username,action,details) VALUES(%s,%s,%s) RETURNING id;"""
 sql_add_filters = """INSERT INTO FILTER(filters) VALUES(%s) RETURNING id;"""
@@ -56,6 +61,8 @@ sql_port = "ST_DISTANCE(region_ferryterminals.geom, region_towns.geom) < {}*1000
 sql_coast = """ST_DISTANCE(region_aktogrammh.geom, region_towns.geom) < {}*1000 AND ST_DISTANCE(region_aktogrammh.geom, region_towns.geom) > {}*1000"""
 sql_elevation = "region_towns.elevation <= {} AND region_towns.elevation >= {}"
 sql_end = " FETCH FIRST 100 ROWS ONLY; """
+#endregion
+
 #check connection between flask and db
 def connect():
     """ Connect to the PostgreSQL database server """
@@ -96,7 +103,7 @@ def get_db_connection():
         user="postgres",
         password="1234")
     return conn
-####TOWNS
+
 #get all logs
 def get_all_athens_regions():
     conn = get_db_connection()
@@ -107,6 +114,7 @@ def get_all_athens_regions():
     conn.close()
     return regions
 
+#gets towns from filters
 def searchTowns(selectedRegion,rangeAirport,rangeCoastMax, 
                 rangeCoastMin,rangeHospital,rangePort, rangeRiver, 
                 rangeElevationMin, rangeElevationMax):
@@ -170,6 +178,8 @@ def searchTowns(selectedRegion,rangeAirport,rangeCoastMax,
     except Exception as e:
         response = {'message': 'Bad request or connection error'}
     return response
+
+#calculates the weights
 def do_the_math(WDistance,WSpatial,WDemographic,WSchool,WHospital,WTransport,
                 WSlope,WCoast,WElevation,WPopulation,WEconomy,regions):
     column_names = ['id', 'geom', 'name', 'custom_hos', 'custom_sch', 'custom_sta', 'custom_slo', 'custom_coa', 'custom_dem', 'custom_pop', 'custom_wor']
@@ -206,12 +216,44 @@ def do_the_math(WDistance,WSpatial,WDemographic,WSchool,WHospital,WTransport,
         value_geom=regions[i][column_names.index('geom')]
         id.append(value_id)
         name.append(value_name)
-        geom.append(value_geom)
+        geom.append(hexToPolygon(value_geom))
     response=[]
     for i in range(0, len(regions)):
-        response.append((f"{id[i]},{geom[i]},{name[i]},{final[i]}"))
+        response.append((f"{id[i]}--{geom[i]}--{name[i]}--{final[i]}"))
     return response
 
+#geom to polygon
+def hexToPolygon(geom):
+    multipolygon = wkb.loads(geom, hex=True)
+    # Initialize a Transformer object outside the loop for efficiency
+    transformer = Transformer.from_proj(source_proj, dest_proj, always_xy=True)
+    transformed_multipolygon = []
+    for polygon in multipolygon.geoms:
+        # Extract all coordinates from the polygon at once
+        coords = np.array(polygon.exterior.coords)
+        # Transform all coordinates in a single call
+        transformed_coords = np.array(transformer.transform(coords[:, 0], coords[:, 1]))
+        # Reconstruct the polygon from transformed coordinates
+        transformed_polygon = list(zip(transformed_coords[0], transformed_coords[1]))
+        #transformed_multipolygon.append(transformed_polygon)
+    #print(transformed_multipolygon)
+    return transformed_polygon
+# def hexToPolygon(geom):
+#     start_time = time.time()
+#     multipolygon = wkb.loads(geom, hex=True)
+#     transformed_multipolygon = []
+#     for polygon in multipolygon.geoms:
+#         transformed_polygon = []
+#         for point in polygon.exterior.coords:
+#             lon, lat = transform(source_proj, dest_proj, point[0], point[1])
+#             transformed_polygon.append((lon, lat))
+#     transformed_multipolygon.append(transformed_polygon)
+#     end_time = time.time()
+#     execution_time = end_time - start_time
+#     print("Execution time: {:.6f} seconds".format(execution_time))
+#     return transformed_multipolygon
+
+#geom to point
 def hexToLatLong(hexpoints):
     LatLongPoints = []
     proj_in = Proj(init='epsg:2100')
